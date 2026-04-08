@@ -1,0 +1,25 @@
+name: supportopsenv
+description: Risk-aware AI customer support execution environment for OpenEnv-style agent training and evaluation.
+version: "1.0.0"
+
+entrypoint:
+  type: http
+  path: /
+  healthcheck: /health
+
+environment:
+  framework: fastapi
+  port: 7860
+
+tasks:
+  - task_id: easy_password_reset
+    difficulty: easy
+    name: Password reset triage
+
+  - task_id: medium_billing_dispute
+    difficulty: medium
+    name: Billing dispute with partial refund policy
+
+  - task_id: hard_security_breach
+    difficulty: hard
+    name: Potential account compromise and data export
