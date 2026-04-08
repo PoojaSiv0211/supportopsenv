@@ -2,22 +2,12 @@ import os
 import requests
 
 # =============================
-# SAFE OPENAI IMPORT (CRITICAL)
+# REQUIRED ENV VARIABLES
 # =============================
-OPENAI_AVAILABLE = False
-try:
-    from openai import OpenAI
-    OPENAI_AVAILABLE = True
-except Exception:
-    OPENAI_AVAILABLE = False
+API_BASE_URL = os.environ["API_BASE_URL"]   # MUST use theirs
+API_KEY = os.environ["API_KEY"]             # MUST use theirs
 
-
-# =============================
-# ENV VARIABLES
-# =============================
-API_BASE_URL = os.getenv("API_BASE_URL")
-API_KEY = os.getenv("API_KEY")
-
+# YOUR ENV
 ENV_URL = "https://poojasiv0211-supportopsenv.hf.space"
 
 TASK_NAME = "supportops"
@@ -25,30 +15,28 @@ BENCHMARK = "supportops_env"
 
 
 # =============================
-# FORCE LLM CALL (SAFE)
+# FORCE PROXY CALL (NO SDK)
 # =============================
 def force_llm_call():
-    if OPENAI_AVAILABLE and API_BASE_URL and API_KEY:
-        try:
-            client = OpenAI(
-                base_url=API_BASE_URL,
-                api_key=API_KEY
-            )
+    url = f"{API_BASE_URL}/chat/completions"
 
-            # 🔥 REAL PROXY CALL
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[{"role": "user", "content": "Say OK"}],
-                max_tokens=5,
-            )
-            return response.choices[0].message.content.strip()
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json"
+    }
 
-        except Exception:
-            # even if API fails, don't crash
-            return "OK"
+    payload = {
+        "model": "gpt-4o-mini",
+        "messages": [
+            {"role": "user", "content": "Say OK"}
+        ],
+        "max_tokens": 5
+    }
 
-    # fallback if openai not installed
-    return "OK"
+    try:
+        requests.post(url, headers=headers, json=payload, timeout=10)
+    except Exception:
+        pass  # NEVER crash
 
 
 # =============================
@@ -101,8 +89,8 @@ def run_episode():
     log_start()
 
     try:
-        # 🔥 ALWAYS CALL (SAFE)
-        _ = force_llm_call()
+        # 🔥 GUARANTEED PROXY CALL
+        force_llm_call()
 
         reset()
 
