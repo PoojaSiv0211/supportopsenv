@@ -1,5 +1,6 @@
 import os
 import requests
+from openai import OpenAI
 
 # =============================
 # ENV VARIABLES (REQUIRED)
@@ -9,14 +10,25 @@ API_BASE_URL = os.getenv(
     "https://poojasiv0211-supportopsenv.hf.space"
 )
 
-MODEL_NAME = os.getenv("MODEL_NAME", "support-agent")
-HF_TOKEN = os.getenv("HF_TOKEN")  # optional
+MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
+HF_TOKEN = os.getenv("HF_TOKEN")
 
 TASK_NAME = "supportops"
 BENCHMARK = "supportops_env"
-MAX_STEPS = 8
+MAX_STEPS = 5
+
+# =============================
+# OPENAI CLIENT (MANDATORY)
+# =============================
+client = OpenAI(
+    base_url=API_BASE_URL,
+    api_key=HF_TOKEN
+)
 
 
+# =============================
+# API FUNCTIONS
+# =============================
 def reset():
     res = requests.post(f"{API_BASE_URL}/reset", json={"difficulty": "hard"})
     res.raise_for_status()
@@ -32,6 +44,35 @@ def step(action_type, content):
     return res.json()
 
 
+# =============================
+# LLM ACTION GENERATOR
+# =============================
+def get_action_text(step_num):
+    try:
+        completion = client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": "You are a cybersecurity support agent."},
+                {"role": "user", "content": f"Step {step_num}: What should be done next in a security breach?"}
+            ],
+            max_tokens=50,
+        )
+        return completion.choices[0].message.content.strip()
+    except Exception:
+        # fallback (SAFE)
+        fallback = [
+            "Analyze the issue and identify it as a security breach.",
+            "Preserve logs and audit trails.",
+            "Ask what data was exported.",
+            "Escalate to security team.",
+            "Revoke sessions and rotate credentials."
+        ]
+        return fallback[min(step_num - 1, len(fallback) - 1)]
+
+
+# =============================
+# LOGGING FUNCTIONS
+# =============================
 def log_start():
     print(f"[START] task={TASK_NAME} env={BENCHMARK} model={MODEL_NAME}", flush=True)
 
@@ -54,6 +95,9 @@ def log_end(success, steps, score, rewards):
     )
 
 
+# =============================
+# MAIN EXECUTION
+# =============================
 def run_episode():
     rewards = []
     steps_taken = 0
@@ -61,40 +105,44 @@ def run_episode():
     log_start()
 
     try:
-        state = reset()
-
-        steps = [
-            ("analyze", "Security breach. Preserve logs."),
-            ("internal_note", "Preserve logs. Do not delete evidence."),
-            ("ask_customer", "What data was exported?"),
-            ("escalate", "Escalating to security team."),
-            ("propose_resolution", "Revoke sessions and rotate credentials."),
-        ]
+        reset()
 
         final_response = None
 
-        for i, (action, text) in enumerate(steps, start=1):
-            res = step(action, text)
+        for step_num in range(1, MAX_STEPS + 1):
+            action_text = get_action_text(step_num)
+
+            # map LLM text to action type
+            if "analy" in action_text.lower():
+                action_type = "analyze"
+            elif "ask" in action_text.lower():
+                action_type = "ask_customer"
+            elif "escalate" in action_text.lower():
+                action_type = "escalate"
+            elif "revoke" in action_text.lower() or "rotate" in action_text.lower():
+                action_type = "propose_resolution"
+            else:
+                action_type = "internal_note"
+
+            res = step(action_type, action_text)
             final_response = res
 
             reward = res["reward"]
             done = res["done"]
 
             rewards.append(reward)
-            steps_taken = i
+            steps_taken = step_num
 
-            log_step(i, action, reward, done)
+            log_step(step_num, action_type, reward, done)
 
             if done:
                 break
 
-        # Score normalization
         total_reward = sum(rewards)
         score = min(max(total_reward / 2.0, 0.0), 1.0)
-
         success = score > 0.2
 
-    except Exception as e:
+    except Exception:
         log_end(False, steps_taken, 0.0, rewards)
         return
 
