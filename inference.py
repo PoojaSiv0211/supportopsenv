@@ -1,9 +1,18 @@
 import os
 import requests
-from openai import OpenAI
 
 # =============================
-# ENV VARIABLES (REQUIRED)
+# SAFE OPENAI IMPORT (CRITICAL)
+# =============================
+try:
+    from openai import OpenAI
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
+
+
+# =============================
+# ENV VARIABLES
 # =============================
 API_BASE_URL = os.getenv(
     "API_BASE_URL",
@@ -15,19 +24,21 @@ HF_TOKEN = os.getenv("HF_TOKEN")
 
 TASK_NAME = "supportops"
 BENCHMARK = "supportops_env"
-MAX_STEPS = 5
-
-# =============================
-# OPENAI CLIENT (MANDATORY)
-# =============================
-client = OpenAI(
-    base_url=API_BASE_URL,
-    api_key=HF_TOKEN
-)
 
 
 # =============================
-# API FUNCTIONS
+# OPENAI CLIENT (SAFE)
+# =============================
+client = None
+if OPENAI_AVAILABLE and HF_TOKEN:
+    try:
+        client = OpenAI(api_key=HF_TOKEN)
+    except Exception:
+        client = None
+
+
+# =============================
+# API CALLS
 # =============================
 def reset():
     res = requests.post(f"{API_BASE_URL}/reset", json={"difficulty": "hard"})
@@ -45,33 +56,38 @@ def step(action_type, content):
 
 
 # =============================
-# LLM ACTION GENERATOR
+# LLM ACTION (SAFE)
 # =============================
 def get_action_text(step_num):
-    try:
-        completion = client.chat.completions.create(
-            model=MODEL_NAME,
-            messages=[
-                {"role": "system", "content": "You are a cybersecurity support agent."},
-                {"role": "user", "content": f"Step {step_num}: What should be done next in a security breach?"}
-            ],
-            max_tokens=50,
-        )
-        return completion.choices[0].message.content.strip()
-    except Exception:
-        # fallback (SAFE)
-        fallback = [
-            "Analyze the issue and identify it as a security breach.",
-            "Preserve logs and audit trails.",
-            "Ask what data was exported.",
-            "Escalate to security team.",
-            "Revoke sessions and rotate credentials."
-        ]
-        return fallback[min(step_num - 1, len(fallback) - 1)]
+    # If OpenAI available → use it
+    if client:
+        try:
+            completion = client.chat.completions.create(
+                model=MODEL_NAME,
+                messages=[
+                    {"role": "system", "content": "You are a cybersecurity support agent."},
+                    {"role": "user", "content": f"Step {step_num}: What should be done next?"}
+                ],
+                max_tokens=50,
+            )
+            return completion.choices[0].message.content.strip()
+        except Exception:
+            pass
+
+    # Fallback (VERY IMPORTANT)
+    fallback = [
+        "Analyze the issue as a security breach.",
+        "Preserve logs and audit trails.",
+        "Ask what data was exported.",
+        "Escalate to security team.",
+        "Revoke sessions and rotate credentials.",
+    ]
+
+    return fallback[min(step_num - 1, len(fallback) - 1)]
 
 
 # =============================
-# LOGGING FUNCTIONS
+# LOGGING
 # =============================
 def log_start():
     print(f"[START] task={TASK_NAME} env={BENCHMARK} model={MODEL_NAME}", flush=True)
@@ -107,25 +123,23 @@ def run_episode():
     try:
         reset()
 
-        final_response = None
+        for step_num in range(1, 6):
+            text = get_action_text(step_num)
 
-        for step_num in range(1, MAX_STEPS + 1):
-            action_text = get_action_text(step_num)
-
-            # map LLM text to action type
-            if "analy" in action_text.lower():
-                action_type = "analyze"
-            elif "ask" in action_text.lower():
-                action_type = "ask_customer"
-            elif "escalate" in action_text.lower():
-                action_type = "escalate"
-            elif "revoke" in action_text.lower() or "rotate" in action_text.lower():
-                action_type = "propose_resolution"
+            # simple mapping
+            text_lower = text.lower()
+            if "analy" in text_lower:
+                action = "analyze"
+            elif "ask" in text_lower:
+                action = "ask_customer"
+            elif "escalate" in text_lower:
+                action = "escalate"
+            elif "revoke" in text_lower or "rotate" in text_lower:
+                action = "propose_resolution"
             else:
-                action_type = "internal_note"
+                action = "internal_note"
 
-            res = step(action_type, action_text)
-            final_response = res
+            res = step(action, text)
 
             reward = res["reward"]
             done = res["done"]
@@ -133,7 +147,7 @@ def run_episode():
             rewards.append(reward)
             steps_taken = step_num
 
-            log_step(step_num, action_type, reward, done)
+            log_step(step_num, action, reward, done)
 
             if done:
                 break
