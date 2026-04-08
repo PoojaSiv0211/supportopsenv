@@ -7,7 +7,7 @@ from app.models import Difficulty, TaskDefinition, Ticket
 
 
 # =============================
-# STATIC TASK DEFINITIONS (IMPORTANT)
+# STATIC TASKS (WITH GRADERS)
 # =============================
 TASKS: List[TaskDefinition] = [
     # -------------------------
@@ -19,6 +19,10 @@ TASKS: List[TaskDefinition] = [
         name="Password reset triage",
         customer_goal="Regain access safely",
         max_steps=6,
+
+        # 🔥 CRITICAL: explicit grader reference
+        grader="step_reward",
+
         initial_ticket=Ticket(
             ticket_id="SUP-1001",
             title="Locked out",
@@ -31,6 +35,7 @@ TASKS: List[TaskDefinition] = [
             risk_flags=["account_access"],
             metadata={"business_impact": "moderate"},
         ),
+
         hidden_truth={
             "required_facts": [
                 "verify_identity",
@@ -60,6 +65,10 @@ TASKS: List[TaskDefinition] = [
         name="Billing dispute",
         customer_goal="Resolve duplicate charge",
         max_steps=7,
+
+        # 🔥 CRITICAL
+        grader="step_reward",
+
         initial_ticket=Ticket(
             ticket_id="SUP-2001",
             title="Charged twice",
@@ -72,6 +81,7 @@ TASKS: List[TaskDefinition] = [
             risk_flags=["billing", "financial"],
             metadata={"business_impact": "high"},
         ),
+
         hidden_truth={
             "required_facts": [
                 "collect_charge_dates",
@@ -102,6 +112,10 @@ TASKS: List[TaskDefinition] = [
         name="Security breach",
         customer_goal="Contain breach safely",
         max_steps=8,
+
+        # 🔥 CRITICAL
+        grader="step_reward",
+
         initial_ticket=Ticket(
             ticket_id="SUP-3001",
             title="Unknown export",
@@ -114,6 +128,7 @@ TASKS: List[TaskDefinition] = [
             risk_flags=["security", "data_export"],
             metadata={"business_impact": "critical"},
         ),
+
         hidden_truth={
             "required_facts": [
                 "treat_as_security_incident",
@@ -141,13 +156,16 @@ TASKS: List[TaskDefinition] = [
 
 
 # =============================
-# INDEX + HELPERS
+# INDEX
 # =============================
 TASK_INDEX: Dict[str, TaskDefinition] = {
     task.task_id: task for task in TASKS
 }
 
 
+# =============================
+# HELPERS
+# =============================
 def get_task_by_id(task_id: str) -> TaskDefinition:
     if task_id not in TASK_INDEX:
         raise KeyError(f"Unknown task_id: {task_id}")
