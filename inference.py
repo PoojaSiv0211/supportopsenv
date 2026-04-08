@@ -1,9 +1,9 @@
 import os
 import requests
 
-# ==============================
-# ENV VARIABLES (REQUIRED FORMAT)
-# ==============================
+# =============================
+# ENV VARIABLES (REQUIRED)
+# =============================
 API_BASE_URL = os.getenv(
     "API_BASE_URL",
     "https://poojasiv0211-supportopsenv.hf.space"
@@ -12,15 +12,13 @@ API_BASE_URL = os.getenv(
 MODEL_NAME = os.getenv("MODEL_NAME", "support-agent")
 HF_TOKEN = os.getenv("HF_TOKEN")  # optional
 
+TASK_NAME = "supportops"
+BENCHMARK = "supportops_env"
+MAX_STEPS = 8
 
-# ==============================
-# API FUNCTIONS
-# ==============================
+
 def reset():
-    res = requests.post(
-        f"{API_BASE_URL}/reset",
-        json={"difficulty": "hard"}
-    )
+    res = requests.post(f"{API_BASE_URL}/reset", json={"difficulty": "hard"})
     res.raise_for_status()
     return res.json()
 
@@ -28,58 +26,79 @@ def reset():
 def step(action_type, content):
     res = requests.post(
         f"{API_BASE_URL}/step",
-        json={
-            "action_type": action_type,
-            "content": content
-        }
+        json={"action_type": action_type, "content": content}
     )
     res.raise_for_status()
     return res.json()
 
 
-# ==============================
-# MAIN EXECUTION
-# ==============================
+def log_start():
+    print(f"[START] task={TASK_NAME} env={BENCHMARK} model={MODEL_NAME}", flush=True)
+
+
+def log_step(step_num, action, reward, done, error=None):
+    error_val = error if error else "null"
+    done_val = str(done).lower()
+
+    print(
+        f"[STEP] step={step_num} action={action} reward={reward:.2f} done={done_val} error={error_val}",
+        flush=True,
+    )
+
+
+def log_end(success, steps, score, rewards):
+    rewards_str = ",".join(f"{r:.2f}" for r in rewards)
+    print(
+        f"[END] success={str(success).lower()} steps={steps} score={score:.2f} rewards={rewards_str}",
+        flush=True,
+    )
+
+
 def run_episode():
-    print("START")
+    rewards = []
+    steps_taken = 0
 
-    state = reset()
-    print("RESET:", state["observation"]["task_id"])
+    log_start()
 
-    steps = [
-        ("analyze", "This is a security breach. Preserve logs and treat as incident."),
-        ("internal_note", "Preserve logs and audit trails. Do not delete evidence."),
-        ("ask_customer", "What data was exported and can you rotate credentials now?"),
-        ("escalate", "Escalating to security incident response team."),
-        ("propose_resolution", "Containment: revoke sessions, rotate credentials, preserve logs."),
-    ]
+    try:
+        state = reset()
 
-    final_response = None
+        steps = [
+            ("analyze", "Security breach. Preserve logs."),
+            ("internal_note", "Preserve logs. Do not delete evidence."),
+            ("ask_customer", "What data was exported?"),
+            ("escalate", "Escalating to security team."),
+            ("propose_resolution", "Revoke sessions and rotate credentials."),
+        ]
 
-    for action, text in steps:
-        res = step(action, text)
-        final_response = res
+        final_response = None
 
-        print(f"STEP: {action} | reward: {res['reward']}")
+        for i, (action, text) in enumerate(steps, start=1):
+            res = step(action, text)
+            final_response = res
 
-        # 🔥 WINNING ADDITIONS
-        if res["info"].get("decision_explanation"):
-            print("EXPLAIN:", res["info"]["decision_explanation"])
+            reward = res["reward"]
+            done = res["done"]
 
-        if res["info"].get("risk_score") is not None:
-            print("RISK:", res["info"]["risk_score"])
+            rewards.append(reward)
+            steps_taken = i
 
-        if res["done"]:
-            break
+            log_step(i, action, reward, done)
 
-    # FINAL OUTPUT
-    if final_response:
-        print("FINAL SCORE:", final_response["info"].get("final_grade"))
+            if done:
+                break
 
-        if final_response["info"].get("trajectory_summary"):
-            print("TRAJECTORY:", final_response["info"]["trajectory_summary"])
+        # Score normalization
+        total_reward = sum(rewards)
+        score = min(max(total_reward / 2.0, 0.0), 1.0)
 
-    print("END")
+        success = score > 0.2
+
+    except Exception as e:
+        log_end(False, steps_taken, 0.0, rewards)
+        return
+
+    log_end(success, steps_taken, score, rewards)
 
 
 if __name__ == "__main__":
