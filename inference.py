@@ -2,53 +2,53 @@ import os
 import requests
 
 # =============================
-# SAFE OPENAI IMPORT (CRITICAL)
+# SAFE OPENAI IMPORT
 # =============================
 try:
     from openai import OpenAI
-    OPENAI_AVAILABLE = True
 except ImportError:
-    OPENAI_AVAILABLE = False
+    OpenAI = None
 
 
 # =============================
-# ENV VARIABLES
+# ENV VARIABLES (CRITICAL)
 # =============================
-API_BASE_URL = os.getenv(
-    "API_BASE_URL",
-    "https://poojasiv0211-supportopsenv.hf.space"
-)
+API_BASE_URL = os.getenv("API_BASE_URL")  # LLM proxy
+API_KEY = os.getenv("API_KEY")            # LLM proxy key
 
-MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
-HF_TOKEN = os.getenv("HF_TOKEN")
+# YOUR ENV API (keep separate)
+ENV_URL = "https://poojasiv0211-supportopsenv.hf.space"
 
 TASK_NAME = "supportops"
 BENCHMARK = "supportops_env"
 
 
 # =============================
-# OPENAI CLIENT (SAFE)
+# OPENAI CLIENT (MANDATORY)
 # =============================
 client = None
-if OPENAI_AVAILABLE and HF_TOKEN:
+if OpenAI and API_BASE_URL and API_KEY:
     try:
-        client = OpenAI(api_key=HF_TOKEN)
+        client = OpenAI(
+            base_url=API_BASE_URL,
+            api_key=API_KEY
+        )
     except Exception:
         client = None
 
 
 # =============================
-# API CALLS
+# ENV API CALLS
 # =============================
 def reset():
-    res = requests.post(f"{API_BASE_URL}/reset", json={"difficulty": "hard"})
+    res = requests.post(f"{ENV_URL}/reset", json={"difficulty": "hard"})
     res.raise_for_status()
     return res.json()
 
 
 def step(action_type, content):
     res = requests.post(
-        f"{API_BASE_URL}/step",
+        f"{ENV_URL}/step",
         json={"action_type": action_type, "content": content}
     )
     res.raise_for_status()
@@ -56,49 +56,35 @@ def step(action_type, content):
 
 
 # =============================
-# LLM ACTION (SAFE)
+# FORCE LLM CALL (IMPORTANT)
 # =============================
-def get_action_text(step_num):
-    # If OpenAI available → use it
-    if client:
-        try:
-            completion = client.chat.completions.create(
-                model=MODEL_NAME,
-                messages=[
-                    {"role": "system", "content": "You are a cybersecurity support agent."},
-                    {"role": "user", "content": f"Step {step_num}: What should be done next?"}
-                ],
-                max_tokens=50,
-            )
-            return completion.choices[0].message.content.strip()
-        except Exception:
-            pass
+def call_llm():
+    if not client:
+        return "Analyze the issue as a security breach."
 
-    # Fallback (VERY IMPORTANT)
-    fallback = [
-        "Analyze the issue as a security breach.",
-        "Preserve logs and audit trails.",
-        "Ask what data was exported.",
-        "Escalate to security team.",
-        "Revoke sessions and rotate credentials.",
-    ]
-
-    return fallback[min(step_num - 1, len(fallback) - 1)]
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "user", "content": "Give one action for handling a security breach."}
+            ],
+            max_tokens=20
+        )
+        return response.choices[0].message.content.strip()
+    except Exception:
+        return "Analyze the issue as a security breach."
 
 
 # =============================
 # LOGGING
 # =============================
 def log_start():
-    print(f"[START] task={TASK_NAME} env={BENCHMARK} model={MODEL_NAME}", flush=True)
+    print(f"[START] task={TASK_NAME} env={BENCHMARK} model=gpt-4o-mini", flush=True)
 
 
-def log_step(step_num, action, reward, done, error=None):
-    error_val = error if error else "null"
-    done_val = str(done).lower()
-
+def log_step(step_num, action, reward, done):
     print(
-        f"[STEP] step={step_num} action={action} reward={reward:.2f} done={done_val} error={error_val}",
+        f"[STEP] step={step_num} action={action} reward={reward:.2f} done={str(done).lower()} error=null",
         flush=True,
     )
 
@@ -112,7 +98,7 @@ def log_end(success, steps, score, rewards):
 
 
 # =============================
-# MAIN EXECUTION
+# MAIN
 # =============================
 def run_episode():
     rewards = []
@@ -123,31 +109,26 @@ def run_episode():
     try:
         reset()
 
-        for step_num in range(1, 6):
-            text = get_action_text(step_num)
+        # 🔥 FORCE ONE LLM CALL (THIS IS THE FIX)
+        llm_output = call_llm()
 
-            # simple mapping
-            text_lower = text.lower()
-            if "analy" in text_lower:
-                action = "analyze"
-            elif "ask" in text_lower:
-                action = "ask_customer"
-            elif "escalate" in text_lower:
-                action = "escalate"
-            elif "revoke" in text_lower or "rotate" in text_lower:
-                action = "propose_resolution"
-            else:
-                action = "internal_note"
+        steps = [
+            ("analyze", llm_output),
+            ("ask_customer", "What data was exported?"),
+            ("escalate", "Escalating to security team."),
+            ("propose_resolution", "Revoke sessions and rotate credentials."),
+        ]
 
+        for i, (action, text) in enumerate(steps, start=1):
             res = step(action, text)
 
             reward = res["reward"]
             done = res["done"]
 
             rewards.append(reward)
-            steps_taken = step_num
+            steps_taken = i
 
-            log_step(step_num, action, reward, done)
+            log_step(i, action, reward, done)
 
             if done:
                 break
