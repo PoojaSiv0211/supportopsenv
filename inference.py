@@ -1,14 +1,29 @@
 import os
 import requests
 
-# REQUIRED ENV VARIABLES
-API_BASE_URL = os.getenv("API_BASE_URL", "https://poojasiv0211-supportopsenv.hf.space")
+# ==============================
+# ENV VARIABLES (REQUIRED FORMAT)
+# ==============================
+API_BASE_URL = os.getenv(
+    "API_BASE_URL",
+    "https://poojasiv0211-supportopsenv.hf.space"
+)
+
 MODEL_NAME = os.getenv("MODEL_NAME", "support-agent")
 HF_TOKEN = os.getenv("HF_TOKEN")  # optional
 
+
+# ==============================
+# API FUNCTIONS
+# ==============================
 def reset():
-    res = requests.post(f"{API_BASE_URL}/reset", json={"difficulty": "hard"})
+    res = requests.post(
+        f"{API_BASE_URL}/reset",
+        json={"difficulty": "hard"}
+    )
+    res.raise_for_status()
     return res.json()
+
 
 def step(action_type, content):
     res = requests.post(
@@ -18,8 +33,13 @@ def step(action_type, content):
             "content": content
         }
     )
+    res.raise_for_status()
     return res.json()
 
+
+# ==============================
+# MAIN EXECUTION
+# ==============================
 def run_episode():
     print("START")
 
@@ -27,20 +47,40 @@ def run_episode():
     print("RESET:", state["observation"]["task_id"])
 
     steps = [
-        ("analyze", "This is a security incident. Preserve logs."),
-        ("ask_customer", "What data was exported?"),
-        ("escalate", "Escalating to security team."),
-        ("propose_resolution", "Revoke sessions and rotate credentials."),
+        ("analyze", "This is a security breach. Preserve logs and treat as incident."),
+        ("internal_note", "Preserve logs and audit trails. Do not delete evidence."),
+        ("ask_customer", "What data was exported and can you rotate credentials now?"),
+        ("escalate", "Escalating to security incident response team."),
+        ("propose_resolution", "Containment: revoke sessions, rotate credentials, preserve logs."),
     ]
+
+    final_response = None
 
     for action, text in steps:
         res = step(action, text)
-        print("STEP:", action, "| reward:", res["reward"])
+        final_response = res
+
+        print(f"STEP: {action} | reward: {res['reward']}")
+
+        # 🔥 WINNING ADDITIONS
+        if res["info"].get("decision_explanation"):
+            print("EXPLAIN:", res["info"]["decision_explanation"])
+
+        if res["info"].get("risk_score") is not None:
+            print("RISK:", res["info"]["risk_score"])
 
         if res["done"]:
             break
-    print("FINAL SCORE:", res["info"].get("final_grade"))
+
+    # FINAL OUTPUT
+    if final_response:
+        print("FINAL SCORE:", final_response["info"].get("final_grade"))
+
+        if final_response["info"].get("trajectory_summary"):
+            print("TRAJECTORY:", final_response["info"]["trajectory_summary"])
+
     print("END")
+
 
 if __name__ == "__main__":
     run_episode()
