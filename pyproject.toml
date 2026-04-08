@@ -5,12 +5,17 @@ description = "Risk-aware RL environment for AI customer support"
 authors = [
     { name="Pooja", email="you@example.com" }
 ]
+
 dependencies = [
     "fastapi",
     "uvicorn",
     "requests",
-    "openai"
+    "openai",
+    "openenv-core>=0.2.0"
 ]
+
+[project.scripts]
+server = "app.server:app"
 
 [tool.setuptools]
 packages = ["app"]
