@@ -1,12 +1,9 @@
 name: supportopsenv
-description: Risk-aware AI customer support execution environment for OpenEnv-style agent training and evaluation.
-version: "1.0.0"
+version: "1.0"
 
 entrypoint:
   type: http
   path: /
-
-healthcheck: /health
 
 environment:
   framework: fastapi
