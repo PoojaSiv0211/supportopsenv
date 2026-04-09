@@ -28,21 +28,11 @@ def step(action: dict):
 def get_tasks():
     return {
         "tasks": [
-            {
-                "task_id": "easy_password_reset",
-                "grader": "step_reward"
-            },
-            {
-                "task_id": "medium_billing_dispute",
-                "grader": "step_reward"
-            },
-            {
-                "task_id": "hard_security_breach",
-                "grader": "step_reward"
-            }
+            {"task_id": "easy_password_reset", "grader": "step_reward"},
+            {"task_id": "medium_billing_dispute", "grader": "step_reward"},
+            {"task_id": "hard_security_breach", "grader": "step_reward"}
         ]
-    }
-# ✅ ADD THIS (VERY IMPORTANT)
+    }# ✅ ADD THIS (VERY IMPORTANT)
 def main():
     import uvicorn
     uvicorn.run("server.app:app", host="0.0.0.0", port=7860)
