@@ -2,8 +2,8 @@ from typing import Dict
 
 
 def step_reward(state: Dict) -> Dict:
-    return {"reward": 0.1}
+    return {"score": 0.1}   # ✅ FIXED
 
 
 def final_grade(state: Dict) -> Dict:
-    return {"reward": 1.0}
+    return {"score": 1.0}   # ✅ FIXED
