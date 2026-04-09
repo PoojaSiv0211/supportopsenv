@@ -14,16 +14,16 @@ tasks:
     difficulty: easy
     name: Password reset triage
     grader:
-      type: step_reward
+      name: step_reward
 
   - task_id: medium_billing_dispute
     difficulty: medium
     name: Billing dispute
     grader:
-      type: step_reward
+      name: step_reward
 
   - task_id: hard_security_breach
     difficulty: hard
     name: Security breach
     grader:
-      type: step_reward
+      name: step_reward
