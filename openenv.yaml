@@ -24,3 +24,4 @@ tasks:
     difficulty: hard
     name: Security breach
     grader: step_reward
+  # fix trigger
