@@ -74,14 +74,14 @@ def step_reward(
     elif action.action_type == ActionType.ESCALATE:
         components["base_action"] += 0.06
 
-    # Progress
+    # Progress tracking
     fact_hits = extract_fact_hits(task, action)
     for fact, hit in fact_hits.items():
         if hit and not state.gathered_facts.get(fact, False):
             state.gathered_facts[fact] = True
             components["progress"] += 0.14
 
-    # Good communication
+    # Communication quality
     if _contains_any(text, ["please", "thank you", "help"]):
         components["clarity"] += 0.03
 
@@ -107,7 +107,7 @@ def step_reward(
             state.risk_mistakes.append(risk_name)
             warnings.append(f"Risk: {risk_name}")
 
-    # Escalation
+    # Escalation tracking
     if action.action_type == ActionType.ESCALATE:
         state.escalated = True
 

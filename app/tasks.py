@@ -4,6 +4,7 @@ from typing import Dict, List
 from uuid import uuid4
 
 from app.models import Difficulty, TaskDefinition, Ticket
+from app.graders import step_reward   # ✅ IMPORTANT FIX
 
 
 TASKS: List[TaskDefinition] = [
@@ -13,7 +14,7 @@ TASKS: List[TaskDefinition] = [
         name="Password reset triage",
         customer_goal="Regain access safely",
         max_steps=6,
-        grader="step_reward",
+        grader=step_reward,   # ✅ FIXED (removed quotes)
         initial_ticket=Ticket(
             ticket_id="SUP-1001",
             title="Locked out",
@@ -42,7 +43,7 @@ TASKS: List[TaskDefinition] = [
         name="Billing dispute",
         customer_goal="Resolve duplicate charge",
         max_steps=7,
-        grader="step_reward",
+        grader=step_reward,   # ✅ FIXED
         initial_ticket=Ticket(
             ticket_id="SUP-2001",
             title="Charged twice",
@@ -72,7 +73,7 @@ TASKS: List[TaskDefinition] = [
         name="Security breach",
         customer_goal="Contain breach safely",
         max_steps=8,
-        grader="step_reward",
+        grader=step_reward,   # ✅ FIXED
         initial_ticket=Ticket(
             ticket_id="SUP-3001",
             title="Unknown export",
