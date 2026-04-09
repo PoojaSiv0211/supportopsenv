@@ -28,7 +28,7 @@ def get_tasks():
 def reset():
     return {
         "observation": "Task initialized",
-        "reward": 0.0,
+        "reward": 0.5,
         "done": False,
         "info": {},
         "task_id": "easy_password_reset"
@@ -39,7 +39,7 @@ def reset():
 def step(request: ActionRequest):
     return {
         "observation": "Step executed",
-        "reward": 0.1,
+        "reward": 0.5,
         "done": False,
         "info": {},
     }
