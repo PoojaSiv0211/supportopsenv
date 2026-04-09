@@ -2,7 +2,7 @@ from typing import Dict, List
 from uuid import uuid4
 
 from app.models import Difficulty, TaskDefinition, Ticket
-from app.graders import step_reward  # ✅ IMPORTANT
+from app.graders import step_reward
 
 
 TASKS: List[TaskDefinition] = [
@@ -13,7 +13,7 @@ TASKS: List[TaskDefinition] = [
         name="Password reset triage",
         customer_goal="Regain access safely",
         max_steps=6,
-        grader=step_reward,  # ✅ FUNCTION (NOT STRING)
+        grader=step_reward,
         initial_ticket=Ticket(
             ticket_id="SUP-1001",
             title="Locked out",

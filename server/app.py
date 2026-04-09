@@ -14,7 +14,7 @@ def get_tasks():
         "tasks": [
             {"task_id": "easy_password_reset", "grader": "step_reward"},
             {"task_id": "medium_billing_dispute", "grader": "step_reward"},
-            {"task_id": "hard_security_breach", "grader": "step_reward"}
+            {"task_id": "hard_security_breach", "grader": "step_reward"},
         ]
     }
 
@@ -30,7 +30,7 @@ def step(action: dict):
         "observation": "ok",
         "reward": 0.1,
         "done": False,
-        "info": {}
+        "info": {},
     }
 
 
