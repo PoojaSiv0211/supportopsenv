@@ -24,7 +24,7 @@ def step(action: dict):
         "done": False,
         "info": {}
     }
-@app.get("/tasks")
+
 @app.get("/tasks")
 def get_tasks():
     return {
