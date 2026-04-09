@@ -42,7 +42,6 @@ def get_tasks():
             }
         ]
     }
-
 # ✅ ADD THIS (VERY IMPORTANT)
 def main():
     import uvicorn
