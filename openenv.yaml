@@ -13,15 +13,17 @@ tasks:
   - task_id: easy_password_reset
     difficulty: easy
     name: Password reset triage
-    grader: step_reward
+    grader:
+      type: step_reward
 
   - task_id: medium_billing_dispute
     difficulty: medium
     name: Billing dispute
-    grader: step_reward
+    grader:
+      type: step_reward
 
   - task_id: hard_security_breach
     difficulty: hard
     name: Security breach
-    grader: step_reward
-  # fix trigger
+    grader:
+      type: step_reward
