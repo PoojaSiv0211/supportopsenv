@@ -1,9 +1,9 @@
 from typing import Dict
 
 
-def step_reward(state: Dict) -> float:
-    return 0.1
+def step_reward(state: Dict) -> Dict:
+    return {"reward": 0.1}
 
 
-def final_grade(state: Dict) -> float:
-    return 1.0
+def final_grade(state: Dict) -> Dict:
+    return {"reward": 1.0}
