@@ -21,17 +21,14 @@ def health():
 
 @app.get("/tasks")
 def list_tasks():
+    from app.tasks import TASKS
     return {
         "tasks": [
             {
-                "task_id": task.task_id,
-                "difficulty": task.difficulty.value,
-                "name": task.name,
-                "customer_goal": task.customer_goal,
-                "max_steps": task.max_steps,
-                "grader": task.grader,
+                "task_id": t.task_id,
+                "grader": t.grader
             }
-            for task in TASKS
+            for t in TASKS
         ]
     }
 
