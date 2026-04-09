@@ -6,9 +6,6 @@ from typing import Any, Dict, List, Literal, Optional
 from pydantic import BaseModel, Field
 
 
-# =============================
-# ENUMS
-# =============================
 class Difficulty(str, Enum):
     EASY = "easy"
     MEDIUM = "medium"
@@ -24,9 +21,6 @@ class ActionType(str, Enum):
     CLOSE_CASE = "close_case"
 
 
-# =============================
-# CORE MESSAGE STRUCTURES
-# =============================
 class Message(BaseModel):
     role: Literal["system", "customer", "agent", "internal"]
     content: str
@@ -45,9 +39,6 @@ class Ticket(BaseModel):
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
-# =============================
-# TASK DEFINITION (FIXED)
-# =============================
 class TaskDefinition(BaseModel):
     task_id: str
     difficulty: Difficulty
@@ -56,14 +47,9 @@ class TaskDefinition(BaseModel):
     hidden_truth: Dict[str, Any]
     initial_ticket: Ticket
     max_steps: int = 8
-
-    # 🔥 CRITICAL FIX — REQUIRED FOR VALIDATOR
-    grader: str = "default"
+    grader: str
 
 
-# =============================
-# REQUEST MODELS
-# =============================
 class ResetRequest(BaseModel):
     difficulty: Optional[Difficulty] = None
     task_id: Optional[str] = None
@@ -75,9 +61,6 @@ class StepRequest(BaseModel):
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
-# =============================
-# OBSERVATION + RESPONSE
-# =============================
 class Observation(BaseModel):
     episode_id: str
     task_id: str
@@ -102,9 +85,6 @@ class StepResponse(BaseModel):
     info: Dict[str, Any] = Field(default_factory=dict)
 
 
-# =============================
-# ENVIRONMENT STATE
-# =============================
 class EnvironmentState(BaseModel):
     episode_id: str
     task: TaskDefinition

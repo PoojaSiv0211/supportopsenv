@@ -5,7 +5,8 @@ version: "1.0.0"
 entrypoint:
   type: http
   path: /
-  healthcheck: /health
+
+healthcheck: /health
 
 environment:
   framework: fastapi
@@ -15,11 +16,14 @@ tasks:
   - task_id: easy_password_reset
     difficulty: easy
     name: Password reset triage
+    grader: step_reward
 
   - task_id: medium_billing_dispute
     difficulty: medium
-    name: Billing dispute with partial refund policy
+    name: Billing dispute
+    grader: step_reward
 
   - task_id: hard_security_breach
     difficulty: hard
-    name: Potential account compromise and data export
+    name: Security breach
+    grader: step_reward

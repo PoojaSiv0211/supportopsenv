@@ -1,9 +1,11 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+
 from app.env import SupportOpsEnv
+from app.models import ResetRequest
+from app.tasks import TASKS
 
-app = FastAPI()
+app = FastAPI(title="SupportOpsEnv")
 
-# Create environment instance
 env = SupportOpsEnv()
 
 
@@ -12,44 +14,57 @@ def root():
     return {"message": "OpenEnv running"}
 
 
-# ✅ FIXED RESET (THIS IS WHAT VALIDATOR NEEDS)
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
+@app.get("/tasks")
+def list_tasks():
+    return {
+        "tasks": [
+            {
+                "task_id": task.task_id,
+                "difficulty": task.difficulty.value,
+                "name": task.name,
+                "customer_goal": task.customer_goal,
+                "max_steps": task.max_steps,
+                "grader": task.grader,
+            }
+            for task in TASKS
+        ]
+    }
+
+
 @app.post("/reset")
-def reset():
+def reset(payload: ResetRequest | None = None):
     try:
-        obs = env.reset()
+        if payload is None:
+            obs = env.reset()
+        else:
+            obs = env.reset(
+                difficulty=payload.difficulty,
+                task_id=payload.task_id,
+            )
 
         return {
             "observation": obs,
             "done": False,
-            "info": {}
+            "info": {},
         }
-
     except Exception as e:
-        return {
-            "error": str(e)
-        }
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-# ✅ STEP ENDPOINT
 @app.post("/step")
 def step(action: dict):
     try:
         obs, reward, done, info = env.step(action)
-
         return {
             "observation": obs,
             "reward": reward,
             "done": done,
-            "info": info
+            "info": info,
         }
-
     except Exception as e:
-        return {
-            "error": str(e)
-        }
-
-
-# health check
-@app.get("/health")
-def health():
-    return {"status": "ok"}
+        raise HTTPException(status_code=500, detail=str(e))
