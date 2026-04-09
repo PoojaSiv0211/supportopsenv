@@ -1,52 +1,55 @@
 from fastapi import FastAPI
-from pydantic import BaseModel
-from typing import Dict, Any
+from app.env import SupportOpsEnv
 
 app = FastAPI()
 
-# Simple in-memory state
-ENV_STATE: Dict[str, Any] = {}
-
-
-class StepInput(BaseModel):
-    action: str = ""
-    content: str = ""
+# Create environment instance
+env = SupportOpsEnv()
 
 
 @app.get("/")
 def root():
-    return {"message": "SupportOpsEnv running"}
+    return {"message": "OpenEnv running"}
 
 
-# ✅ REQUIRED: RESET ENDPOINT
+# ✅ FIXED RESET (THIS IS WHAT VALIDATOR NEEDS)
 @app.post("/reset")
 def reset():
-    global ENV_STATE
-    ENV_STATE = {
-        "messages": [],
-        "done": False
-    }
+    try:
+        obs = env.reset()
 
-    return {
-        "status": "reset successful",
-        "state": ENV_STATE
-    }
+        return {
+            "observation": obs,
+            "done": False,
+            "info": {}
+        }
+
+    except Exception as e:
+        return {
+            "error": str(e)
+        }
 
 
-# ✅ REQUIRED: STEP ENDPOINT (important for next phase)
+# ✅ STEP ENDPOINT
 @app.post("/step")
-def step(input: StepInput):
-    ENV_STATE["messages"].append(input.content)
+def step(action: dict):
+    try:
+        obs, reward, done, info = env.step(action)
 
-    return {
-        "observation": "Step processed",
-        "reward": 0.1,
-        "done": False,
-        "info": {}
-    }
+        return {
+            "observation": obs,
+            "reward": reward,
+            "done": done,
+            "info": info
+        }
+
+    except Exception as e:
+        return {
+            "error": str(e)
+        }
 
 
-# ✅ OPTIONAL BUT SAFE
+# health check
 @app.get("/health")
 def health():
     return {"status": "ok"}
